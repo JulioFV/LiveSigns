@@ -1,12 +1,58 @@
-import React from 'react';
-import { View, Text, TextInput, Button, StyleSheet, SafeAreaView, Image, TouchableOpacity } from 'react-native';
+import React, { useState} from 'react';
+import { View, Alert,Text, TextInput, Button, StyleSheet, SafeAreaView, Image, TouchableOpacity } from 'react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import Interprete from './Interprete';
 import Registro from './Registro';
 
 import { NavigationProp } from '@react-navigation/native';
+import { db} from "../../firebaseConfig"; // Ajusta la ruta según tu estructura
+import { collection, query, where, getDocs } from "firebase/firestore";
+
+type LoginScreenProps = {
+  navigation: NavigationProp<any>;
+};
 
 const App = ({navigation}: {navigation: NavigationProp<any>}) => {
+
+ const [email, setEmail] = useState('');
+ const [password, setPassword] = useState('');
+
+  const handleLogin = async () => {
+    
+    try {
+      const q = query(collection(db, "usuarios"), where("correo", "==", email));
+      const querySnapshot = await getDocs(q);
+  
+      if (querySnapshot.empty) {
+        console.log("Usuario no encontrado");
+        Alert.alert("Usuario no encontrado");
+        return false;
+      }
+  
+      // 2. Obtiene el primer documento (asumiendo que el email es único)
+      const userDoc = querySnapshot.docs[0].data();
+  
+      // 3. Compara la contraseña (¡en producción usa Firebase Auth!)
+      var contrasenia = `"${password}"`;
+      console.log("Contraseña ingresada:", password);
+      if (userDoc.password === password) {
+        console.log("Login exitoso:", userDoc);
+        Alert.alert("Login exitoso");
+        navigation.navigate('Interprete');
+        return true;
+      } else {
+        console.log("Contraseña incorrecta");
+        Alert.alert("Contraseña incorrecta");
+        return false;
+      }
+    } catch (error) {
+      Alert.alert("Error en login", (error as Error).message);
+      console.error("Error en login:", error);
+      return false;
+    }
+  };
+
+
   return (
     <PaperProvider>
       <SafeAreaView style={styles.container}>
@@ -26,12 +72,14 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
         <Image source={require('../../assets/images/Imagenes/logo.png')} style={styles.logo} />
         <View style={styles.card}>
           <Text style={styles.label}>Inicia Sesión</Text>
-          <Text style={styles.text}>Email</Text>
+          <Text style={styles.text}  >Email</Text>
           <TextInput
             style={styles.input}
-            placeholder="LiveSigns@isoeh.edu.mx"
+            placeholder="LiveSigns@itsoeh.edu.mx"
             keyboardType="email-address"
             autoCapitalize="none"
+            value={email} 
+            onChangeText={setEmail}
             placeholderTextColor="#050a30"
           />
           <Text style={styles.text}>Contraseña</Text>
@@ -40,8 +88,10 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
             placeholder="********"
             secureTextEntry
             placeholderTextColor="#050a30"
+            value={password}
+            onChangeText={setPassword}
           />
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Interprete')}>
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
           <Text style={styles.footer}>Recuperar Contraseña</Text>
