@@ -1,11 +1,53 @@
-import React from 'react';
-import { View, Text, TextInput, Button, StyleSheet, SafeAreaView, Image, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Alert,TextInput, Button, StyleSheet, SafeAreaView, Image, TouchableOpacity } from 'react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import Login from './Login';
+import { db} from "../../firebaseConfig";
+import { collection, addDoc } from "firebase/firestore";
 
 import { NavigationProp } from '@react-navigation/native';
 
 const App = ({navigation}: {navigation: NavigationProp<any>}) => {
+  
+  const [loading, setLoading] = React.useState(false);
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [nombre, setNombre] = useState<string>('');
+
+  const registrarUsuario = async () => {
+    if (!email.includes('@') && !email.includes('.') && email.length < 5) {
+      Alert.alert('Error', 'El correo electrónico no es válido');
+      console.log('Error: El correo electrónico no es válido');
+      return;
+    }else if(password.length < 6){
+      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+      console.log('Error: La contraseña debe tener al menos 6 caracteres');
+      return;
+
+    }else if (!email || !password || !nombre) { 
+      Alert.alert('Error', 'Todos los campos son obligatorios');
+    console.log('Error: Todos los campos son obligatorios');
+      return;
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, 'usuarios'), {
+        nombre,
+        correo: email,
+        password,
+        creadoEn: new Date()
+      });
+
+      console.log('Usuario registrado con ID: ', docRef.id);
+      Alert.alert('Éxito', `Usuario registrado con ID: ${docRef.id}`);
+      setEmail('');
+      setPassword('');
+      setNombre('');
+    } catch (error) {
+      console.error('Error al registrar usuario:', error);
+      Alert.alert('Error', 'No se pudo registrar el usuario');
+    }
+  }
   return (
     <PaperProvider>
       <SafeAreaView style={styles.container}>
@@ -18,6 +60,8 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
             placeholder="Live Signs"
             keyboardType="ascii-capable"
             autoCapitalize="none"
+            value={nombre}
+            onChangeText={setNombre}
             placeholderTextColor="#fff"
           />
           <Text style={styles.text}>Email</Text>
@@ -25,6 +69,8 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
             style={styles.input}
             placeholder="LiveSigns@gmail.com"
             keyboardType='email-address'
+            value={email} 
+            onChangeText={setEmail}
             autoCapitalize="none"
             placeholderTextColor="#fff"
           />
@@ -32,11 +78,14 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
           <TextInput
             style={styles.input}
             placeholder="* * * * * * * * * *"
+            value={password}
+            onChangeText={setPassword}
             secureTextEntry
             autoCapitalize="none"
             placeholderTextColor="#fff"
+            
           />
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Login')}>
+        <TouchableOpacity style={styles.button} onPress={registrarUsuario}>
             <Text style={styles.buttonText}>Registrarme</Text>
         </TouchableOpacity>
           <Text style={styles.footer} onPress={()=> navigation.navigate('Login')} >¿Ya tienes cuenta? Inicia Sesión</Text>
@@ -45,6 +94,7 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
     </PaperProvider>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

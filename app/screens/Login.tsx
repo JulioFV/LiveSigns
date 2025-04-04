@@ -1,11 +1,11 @@
 import React, { useState} from 'react';
-import { View, Alert,Text, TextInput, Button, StyleSheet, SafeAreaView, Image, TouchableOpacity } from 'react-native';
+import { View, Alert,Text,Modal, TextInput, ActivityIndicator, ScrollView,StyleSheet, SafeAreaView, Image, TouchableOpacity } from 'react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import Interprete from './Interprete';
 import Registro from './Registro';
 
 import { NavigationProp } from '@react-navigation/native';
-import { db} from "../../firebaseConfig"; // Ajusta la ruta según tu estructura
+import { db} from "../../firebaseConfig";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
 type LoginScreenProps = {
@@ -16,45 +16,69 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
 
  const [email, setEmail] = useState('');
  const [password, setPassword] = useState('');
+ const [loading, setLoading] = useState(false);
+ 
+ const validarCampos = () => {
+  if (!email || !password) {
+    Alert.alert('Error', 'Todos los campos son obligatorios');
+    return; // Detiene la ejecución
+  }
 
+  if (!email.includes('@')) {
+    Alert.alert('Error', 'El correo electrónico debe contener @');
+    return;
+  }
+
+  if (!email.includes('.')) {
+    Alert.alert('Error', 'El correo electrónico debe contener un punto (.)');
+    return;
+  }
+
+  if (email.length < 5) {
+    Alert.alert('Error', 'El correo electrónico es demasiado corto');
+    return;
+  }
+
+  handleLogin();
+};
+
+ 
   const handleLogin = async () => {
-    
+    setLoading(true); // Mostrar el modal
+
     try {
-      const q = query(collection(db, "usuarios"), where("correo", "==", email));
+      const q = query(collection(db, 'usuarios'), where('correo', '==', email));
       const querySnapshot = await getDocs(q);
-  
+    
       if (querySnapshot.empty) {
-        console.log("Usuario no encontrado");
-        Alert.alert("Usuario no encontrado");
-        return false;
+        Alert.alert('Usuario no encontrado');
+        setLoading(false);
+        return;
       }
-  
-      // 2. Obtiene el primer documento (asumiendo que el email es único)
+    
       const userDoc = querySnapshot.docs[0].data();
-  
-      // 3. Compara la contraseña (¡en producción usa Firebase Auth!)
-      var contrasenia = `"${password}"`;
-      console.log("Contraseña ingresada:", password);
+    
       if (userDoc.password === password) {
-        console.log("Login exitoso:", userDoc);
-        Alert.alert("Login exitoso");
-        navigation.navigate('Interprete');
-        return true;
+        Alert.alert('Login exitoso');
+        // Navegar a la pantalla "Interprete" con los datos del usuario
+        navigation.navigate('Interprete', { user: userDoc });
+        console.log('Login exitoso', userDoc);
       } else {
-        console.log("Contraseña incorrecta");
-        Alert.alert("Contraseña incorrecta");
-        return false;
+        Alert.alert('Contraseña incorrecta');
       }
     } catch (error) {
-      Alert.alert("Error en login", (error as Error).message);
-      console.error("Error en login:", error);
-      return false;
+      Alert.alert(
+        'Error en login',
+        error instanceof Error ? error.message : 'Ocurrió un error desconocido'
+      );
+    } finally {
+      setLoading(false); // Ocultar el modal cuando termine el login
     }
   };
 
 
   return (
-    <PaperProvider>
+    <ScrollView>
       <SafeAreaView style={styles.container}>
       <View style={styles.container1}>
       <Image
@@ -78,6 +102,7 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
             placeholder="LiveSigns@itsoeh.edu.mx"
             keyboardType="email-address"
             autoCapitalize="none"
+            inputMode='email'
             value={email} 
             onChangeText={setEmail}
             placeholderTextColor="#050a30"
@@ -85,20 +110,32 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
           <Text style={styles.text}>Contraseña</Text>
           <TextInput
             style={styles.input}
-            placeholder="********"
+            placeholder=""
             secureTextEntry
+            
+            autoCapitalize="none"
             placeholderTextColor="#050a30"
             value={password}
             onChangeText={setPassword}
           />
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <TouchableOpacity style={styles.button} onPress={validarCampos}>
             <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
+
+        <Modal transparent={true} visible={loading} animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text>Espera...</Text>
+            <ActivityIndicator size="large" color="#0000ff" />
+          </View>
+        </View>
+      </Modal>
+
           <Text style={styles.footer}>Recuperar Contraseña</Text>
           <Text style={styles.footer} onPress={()=> navigation.navigate('Registro')}>¿No tienes cuenta? Regístrate</Text>
         </View>
       </SafeAreaView>
-    </PaperProvider>
+    </ScrollView>
   );
 };
 
@@ -108,6 +145,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFF', 
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Fondo semi-transparente
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
   },
   title: {
     fontSize: 40,
