@@ -43,38 +43,41 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
 };
 
  
-  const handleLogin = async () => {
-    setLoading(true); // Mostrar el modal
+const handleLogin = async () => {
+  setLoading(true); // Mostrar el modal de carga
 
-    try {
-      const q = query(collection(db, 'usuarios'), where('correo', '==', email));
-      const querySnapshot = await getDocs(q);
-    
-      if (querySnapshot.empty) {
-        Alert.alert('Usuario no encontrado');
-        setLoading(false);
-        return;
-      }
-    
-      const userDoc = querySnapshot.docs[0].data();
-    
-      if (userDoc.password === password) {
-        Alert.alert('Login exitoso');
-        // Navegar a la pantalla "Interprete" con los datos del usuario
-        navigation.navigate('Interprete', { user: userDoc });
-        console.log('Login exitoso', userDoc);
-      } else {
-        Alert.alert('Contraseña incorrecta');
-      }
-    } catch (error) {
-      Alert.alert(
-        'Error en login',
-        error instanceof Error ? error.message : 'Ocurrió un error desconocido'
-      );
-    } finally {
-      setLoading(false); // Ocultar el modal cuando termine el login
+  try {
+    // Normalizar el correo
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Consultar Firestore por el usuario con ese correo
+    const q = query(collection(db, 'usuarios'), where('correo', '==', normalizedEmail));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      Alert.alert('Error', 'Usuario no encontrado');
+      return;
     }
-  };
+
+    const userDoc = querySnapshot.docs[0].data();
+
+    if (userDoc.password === password) {
+      Alert.alert('Login exitoso');
+      
+      // Navegar a la pantalla "Interprete" enviando los datos del usuario
+      navigation.navigate('Interprete', { user: userDoc });
+    } else {
+      Alert.alert('Error', 'Contraseña incorrecta');
+    }
+  } catch (error) {
+    Alert.alert(
+      'Error en login',
+      error instanceof Error ? error.message : 'Ocurrió un error desconocido'
+    );
+  } finally {
+    setLoading(false); // Asegurar que el loading se desactiva siempre
+  }
+};
 
 
   return (
