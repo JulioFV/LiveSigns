@@ -3,6 +3,7 @@ import { View, Alert,Text, TextInput, Button, StyleSheet, SafeAreaView, Image, T
 import { Provider as PaperProvider } from 'react-native-paper';
 import Interprete from './Interprete';
 import Registro from './Registro';
+import Contrasenia from './Contrasenia';
 
 import { NavigationProp } from '@react-navigation/native';
 import { db} from "../../firebaseConfig"; // Ajusta la ruta según tu estructura
@@ -94,7 +95,7 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
-          <Text style={styles.footer}>Recuperar Contraseña</Text>
+          <Text style={styles.footer} onPress={()=> navigation.navigate('Contrasenia')} >Recuperar Contraseña</Text>
           <Text style={styles.footer} onPress={()=> navigation.navigate('Registro')}>¿No tienes cuenta? Regístrate</Text>
         </View>
       </SafeAreaView>
