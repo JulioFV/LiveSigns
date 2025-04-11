@@ -1,5 +1,6 @@
 import { NavigationProp } from '@react-navigation/native';
 import React from 'react';
+
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import Interprete from './Interprete';
 import Explora from './Explora';
@@ -7,6 +8,25 @@ import Diccionario from './Diccionario';
 import Juegos from './Juegos';
 
 const App = ({navigation}: {navigation: NavigationProp<any>}) => {
+
+import { View, Text, Image, StyleSheet } from 'react-native';
+import { NavigationProp,useRoute,RouteProp } from '@react-navigation/native';
+
+
+type RootStackParamList = {//Linea que define los tipos de las pantallas
+  Perfil: { user: { nombre: string; correo: string } }; // Define el tipo de 'user' como un objeto con propiedades
+  //Define los parametros que recibe la pantalla interprete
+//Agrega otras pantallas si es necesario
+};
+
+type InterpreteRouteProp = RouteProp<RootStackParamList, 'Perfil'>;
+
+
+const App = () => {
+
+   const route = useRoute<InterpreteRouteProp>();
+    const { user } = route.params; // Now TypeScript knows 'user' exists
+
   return (
     <View style={styles.container}>
       <View style={styles.container3}>
@@ -23,8 +43,8 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
       
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>Datos del Usuario</Text>
-        <Text>Nombre: Nombre Usuario</Text>
-        <Text>Correo Electrónico: NombreUsuario@gmail.com</Text>
+        <Text>Nombre:  {user.nombre}</Text>
+        <Text>Correo Electrónico:  {user.correo}</Text>
         <Text>Contraseña: **********</Text>
       </View>
       </View>

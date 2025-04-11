@@ -1,11 +1,22 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { NavigationProp } from '@react-navigation/native';
+import { NavigationProp,useRoute,RouteProp } from '@react-navigation/native';
 import Perfil from './Perfil';
+
+type RootStackParamList = {
+  Perfil: { user: { nombre: string; correo: string } };
+  Interprete: { user: { nombre: string; correo: string } };
+};
+
+type InterpreteRouteProp = RouteProp<RootStackParamList, 'Interprete'>;
 import Explora from './Explora';
 import Diccionario from './Diccionario';
 import Juegos from './Juegos';
 
+const App = ({navigation}: {navigation: NavigationProp<any>}) => {
+
+  const route = useRoute<InterpreteRouteProp>(); // Aquí usas tu tipo
+  const { user } = route.params;
 const App = ({ navigation }: { navigation: NavigationProp<any> }) => {
   return (
     <View style={styles.container}>
@@ -40,6 +51,9 @@ const App = ({ navigation }: { navigation: NavigationProp<any> }) => {
           </TouchableOpacity>
         </View>
         <View style={styles.iconItem}>
+          <TouchableOpacity onPress={() => navigation.navigate('Perfil', { user: user })}>
+          <Image source={require('../../assets/images/Imagenes/perfil.png')} style={styles.smallIcon} />
+          <Text>Perfil</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Perfil')}>
             <Image source={require('../../assets/images/Imagenes/perfil.png')} style={styles.smallIcon} />
             <Text>Perfil</Text>
