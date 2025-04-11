@@ -1,36 +1,49 @@
 import React, { useState } from 'react';
-import { View, Text, Alert,TextInput, Button, StyleSheet, SafeAreaView, Image, TouchableOpacity } from 'react-native';
+import { View, Text,Modal,ActivityIndicator, Alert,TextInput, Button, StyleSheet, SafeAreaView, Image, TouchableOpacity } from 'react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import Login from './Login';
 import { db} from "../../firebaseConfig";
 import { collection, addDoc } from "firebase/firestore";
-
 import { NavigationProp } from '@react-navigation/native';
+import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+
+const auth = getAuth();
 
 const App = ({navigation}: {navigation: NavigationProp<any>}) => {
   
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [nombre, setNombre] = useState<string>('');
 
-  const registrarUsuario = async () => {
-    if (!email.includes('@') && !email.includes('.') && email.length < 5) {
-      Alert.alert('Error', 'El correo electrónico no es válido');
-      console.log('Error: El correo electrónico no es válido');
-      return;
-    }else if(password.length < 6){
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
-      console.log('Error: La contraseña debe tener al menos 6 caracteres');
-      return;
 
-    }else if (!email || !password || !nombre) { 
+  const registrarUsuario = async () => {
+    if (!email.includes('@') || !email.includes('.') || email.length < 5) {
+      Alert.alert('Error', 'El correo electrónico no es válido');
+      return;
+    } else if (password.length < 8) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres');
+      return;
+    } else if (!email || !password || !nombre) {
       Alert.alert('Error', 'Todos los campos son obligatorios');
-    console.log('Error: Todos los campos son obligatorios');
+      return;
+    }else if (password.includes('*')|| password.includes('!')|| password.includes('@')|| password.includes('#')|| password.includes('$')|| password.includes('%')) {
+      Alert.alert('Error', 'La contraseña no debe contener caracteres especiales como * ! @ # $ %');
       return;
     }
 
     try {
+      setLoading(true);
+      const normalizedEmail = email.trim().toLowerCase();
+      const UserCedential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+      const user = UserCedential.user;
+      if (auth.currentUser) {
+        await sendEmailVerification(auth.currentUser);
+      } else {
+        Alert.alert('Error', 'No se pudo enviar el correo de verificación');
+        throw new Error('Ningun usuario autenticado');
+            }
+
       const docRef = await addDoc(collection(db, 'usuarios'), {
         nombre,
         correo: email,
@@ -39,13 +52,37 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
       });
 
       console.log('Usuario registrado con ID: ', docRef.id);
-      Alert.alert('Éxito', `Usuario registrado con ID: ${docRef.id}`);
+      Alert.alert('Éxito', `Usuario registrado con ID: ${docRef.id} . Se ha enviado un correo de verificación.`);
       setEmail('');
       setPassword('');
       setNombre('');
-    } catch (error) {
+    } catch (error: any) {
+      setLoading(false);
       console.error('Error al registrar usuario:', error);
-      Alert.alert('Error', 'No se pudo registrar el usuario');
+
+          let mensaje = 'No se pudo registrar el usuario';
+
+          switch (error.code) {
+            case 'auth/email-already-in-use':
+              mensaje = 'El correo electrónico ya está en uso.';
+              break;
+            case 'auth/invalid-email':
+              mensaje = 'El correo electrónico no es válido.';
+              break;
+            case 'auth/weak-password':
+              mensaje = 'La contraseña es muy débil. Debe tener al menos 6 caracteres.';
+              break;
+            case 'auth/operation-not-allowed':
+              mensaje = 'No se permite crear cuentas en este momento.';
+              break;
+            default:
+              mensaje = error.message || mensaje;
+              break;
+          }
+
+          Alert.alert('Error', mensaje);
+    }finally {
+      setLoading(false);
     }
   }
   return (
@@ -90,6 +127,15 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
         </TouchableOpacity>
           <Text style={styles.footer} onPress={()=> navigation.navigate('Login')} >¿Ya tienes cuenta? Inicia Sesión</Text>
         </View>
+        <Modal transparent={true} visible={loading} animationType="fade">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Image source={require('../../assets/images/Imagenes/logo.png')} style={styles.logo} />
+              <Text style={styles.textoModal}>Espera...</Text>
+              <ActivityIndicator size="large" color="#0000ff" />
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </PaperProvider>
   );
@@ -97,6 +143,25 @@ const App = ({navigation}: {navigation: NavigationProp<any>}) => {
 
 
 const styles = StyleSheet.create({
+  textoModal:{
+    fontSize: 20,
+    fontWeight: "bold",
+    color: '#12229d',
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Fondo semi-transparente
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
   container: {
     flex: 1,
     justifyContent: 'flex-end',
